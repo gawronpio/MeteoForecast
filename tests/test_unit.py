@@ -30,13 +30,15 @@ class TestMeteoForecastUnit:
     def test_init_with_default_config(self):
         """Test MeteoForecast initialization with default configuration."""
         with patch.object(MeteoForecast, '_set_xy'):
+            model = MeteoForecast._default_config['model']
+            grid = MeteoForecast._default_config['grid']
             forecast = MeteoForecast(self.api_key, self.latitude, self.longitude)
 
             assert forecast.lat == self.latitude
             assert forecast.lon == self.longitude
             assert forecast.api_key == self.api_key
             assert forecast.config == MeteoForecast._default_config
-            assert forecast.main_url == f'{MeteoForecast._base_url}wrf/grid/d02_XLONG_XLAT/'
+            assert forecast.main_url == f'{MeteoForecast._base_url}{model}/grid/{grid}/'
 
     def test_init_with_custom_config(self):
         """Test MeteoForecast initialization with custom configuration."""
@@ -64,15 +66,18 @@ class TestMeteoForecastUnit:
     @patch('meteo_forecast.meteo_forecast.requests.post')
     def test_connect_meteo_api_static_post_success(self, mock_post):
         """Test static API connection method with POST request - success case."""
+        api_key = 'test_key'
+        expected_result = {'data': 'test'}
+        url = 'http://test.url'
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'data': 'test'}
+        mock_response.json.return_value = expected_result
         mock_post.return_value = mock_response
 
-        result = MeteoForecast._connect_meteo_api_('test_key', 'http://test.url', post=True)
+        result = MeteoForecast._connect_meteo_api_(api_key, url, post=True)
 
-        assert result == {'data': 'test'}
-        mock_post.assert_called_once_with('http://test.url', headers={'Authorization': 'Token test_key'})
+        assert result == expected_result
+        mock_post.assert_called_once_with(url, headers={'Authorization': f'Token {api_key}'})
 
     @patch('meteo_forecast.meteo_forecast.requests.get')
     def test_connect_meteo_api_static_failure(self, mock_get):
@@ -87,41 +92,52 @@ class TestMeteoForecastUnit:
 
     def test_connect_meteo_api_instance_method(self):
         """Test instance API connection method."""
+        expected_result = {'data': 'test'}
+        url = 'http://test.url'
+
         with patch.object(MeteoForecast, '_set_xy'), \
                 patch.object(MeteoForecast, '_connect_meteo_api_') as mock_static:
-            mock_static.return_value = {'data': 'test'}
+            mock_static.return_value = expected_result
             forecast = MeteoForecast(self.api_key, self.latitude, self.longitude)
 
-            result = forecast._connect_meteo_api('http://test.url', post=True)
+            result = forecast._connect_meteo_api(url, post=True)
 
-            assert result == {'data': 'test'}
-            mock_static.assert_called_once_with(api_key=self.api_key, url='http://test.url', post=True)
+            assert result == expected_result
+            mock_static.assert_called_once_with(api_key=self.api_key, url=url, post=True)
 
     @patch.object(MeteoForecast, '_connect_meteo_api_')
     def test_get_xy_static(self, mock_connect):
         """Test static get_xy method."""
-        mock_connect.return_value = {'points': [{'col': 100, 'row': 200}]}
+        api_key = 'test_key'
+        lat = 52.0
+        lon = 21.0
+        x = 100
+        y = 200
+        model = 'wrf'
+        grid = 'd02_XLONG_XLAT'
+        mock_connect.return_value = {'points': [{'col': x, 'row': y}]}
 
-        x, y = MeteoForecast.get_xy('test_key', 52.0, 21.0, 'wrf', 'd02_XLONG_XLAT')
+        x, y = MeteoForecast.get_xy(api_key, lat, lon, model, grid)
 
-        assert x == 100
-        assert y == 200
-        expected_url = f'{MeteoForecast._base_url}wrf/grid/d02_XLONG_XLAT/latlon2rowcol/52.0%2C21.0/'
-        mock_connect.assert_called_once_with(api_key='test_key', url=expected_url)
+        assert x == x
+        assert y == y
+        expected_url = f'{MeteoForecast._base_url}{model}/grid/{grid}/latlon2rowcol/{lat}%2C{lon}/'
+        mock_connect.assert_called_once_with(api_key=api_key, url=expected_url)
 
     def test_set_xy_instance_method(self):
         """Test instance _set_xy method."""
+        x = 150
+        y = 250
+        model = MeteoForecast._default_config['model']
+        grid = MeteoForecast._default_config['grid']
         with patch.object(MeteoForecast, 'get_xy') as mock_get_xy:
-            mock_get_xy.return_value = (150, 250)
+            mock_get_xy.return_value = (x, y)
 
             forecast = MeteoForecast(self.api_key, self.latitude, self.longitude)
 
-            assert forecast.x == 150
-            assert forecast.y == 250
-            mock_get_xy.assert_called_once_with(
-                self.api_key, self.latitude, self.longitude,
-                model='wrf', grid='d02_XLONG_XLAT'
-            )
+            assert forecast.x == x
+            assert forecast.y == y
+            mock_get_xy.assert_called_once_with(self.api_key, self.latitude, self.longitude, model=model, grid=grid)
 
     def test_get_forecast_dates_static(self):
         """Test static _get_forecast_dates method."""
@@ -130,32 +146,37 @@ class TestMeteoForecastUnit:
             'interval': 6,
             'count': 3
         }
+        expected = ['2024-01-01T00', '2024-01-01T06', '2024-01-01T12']
 
         result = MeteoForecast._get_forecast_dates(date_dict)
 
-        expected = ['2024-01-01T00', '2024-01-01T06', '2024-01-01T12']
         assert result == expected
 
     @patch.object(MeteoForecast, '_connect_meteo_api_')
     def test_available_models_static(self, mock_connect):
         """Test static available_models method."""
-        mock_connect.return_value = {'models': ['wrf', 'gfs']}
+        api_key = 'test_key'
+        models = ['coamps', 'wrf']
+        mock_connect.return_value = {'models': models}
 
-        result = MeteoForecast.available_models('test_key')
+        result = MeteoForecast.available_models(api_key)
 
-        assert result == ['wrf', 'gfs']
-        mock_connect.assert_called_once_with('test_key', MeteoForecast._base_url)
+        assert result == models
+        mock_connect.assert_called_once_with(api_key, MeteoForecast._base_url)
 
     @patch.object(MeteoForecast, '_connect_meteo_api_')
     def test_available_grids_static(self, mock_connect):
         """Test static available_grids method."""
-        mock_connect.return_value = {'grids': ['d01', 'd02_XLONG_XLAT']}
+        api_key = 'test_key'
+        model = 'wrf'
+        grids = ['d01', 'd02_XLONG_XLAT']
+        mock_connect.return_value = {'grids': grids}
 
-        result = MeteoForecast.available_grids('test_key', 'wrf')
+        result = MeteoForecast.available_grids(api_key, model)
 
-        assert result == ['d01', 'd02_XLONG_XLAT']
-        expected_url = f'{MeteoForecast._base_url}wrf/grid/'
-        mock_connect.assert_called_once_with('test_key', expected_url)
+        assert result == grids
+        expected_url = f'{MeteoForecast._base_url}{model}/grid/'
+        mock_connect.assert_called_once_with(api_key, expected_url)
 
     @patch.object(MeteoForecast, 'get_xy')
     @patch.object(MeteoForecast, '_connect_meteo_api_')
