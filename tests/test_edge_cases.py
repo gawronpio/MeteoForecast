@@ -9,6 +9,8 @@ Edge cases tests for MeteoForecast class.
 
 from unittest.mock import patch
 
+import pytest
+
 from meteo_forecast.meteo_forecast import MeteoForecast
 
 
@@ -40,11 +42,8 @@ class TestMeteoForecastEdgeCases:
         }
 
         with patch.object(MeteoForecast, '_set_xy'):
-            forecast = MeteoForecast(self.api_key, 52.0, 21.0, config)
-
-            with patch.object(forecast, '_connect_meteo_api'):
-                result = forecast.get_forecast()
-                assert result == {}
+            with pytest.raises(ValueError, match="Fields cannot be empty"):
+                MeteoForecast(self.api_key, 52.0, 21.0, config)
 
     def test_date_parsing_edge_cases(self):
         """Test date parsing with various formats."""
