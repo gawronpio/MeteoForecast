@@ -111,16 +111,16 @@ class TestMeteoForecastUnit:
         api_key = 'test_key'
         lat = 52.0
         lon = 21.0
-        x = 100
-        y = 200
+        x_expected = 100
+        y_expected = 200
         model = 'wrf'
         grid = 'd02_XLONG_XLAT'
-        mock_connect.return_value = {'points': [{'col': x, 'row': y}]}
+        mock_connect.return_value = {'points': [{'col': x_expected, 'row': y_expected}]}
 
         x, y = MeteoForecast.get_xy(api_key, lat, lon, model, grid)
 
-        assert x == x
-        assert y == y
+        assert x == x_expected
+        assert y == y_expected
         expected_url = f'{MeteoForecast.base_url}{model}/grid/{grid}/latlon2rowcol/{lat}%2C{lon}/'
         mock_connect.assert_called_once_with(api_key=api_key, url=expected_url)
 
