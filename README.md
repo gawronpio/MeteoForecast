@@ -12,6 +12,6 @@ MeteoForecast is a tool to get weather forecast data from Polish service meteo.p
    pip install git+https://github.com/gawronpio/MeteoForecast.git
    ```
 
-## Licencja
+## License
 
 The project is made available under the MIT license.
