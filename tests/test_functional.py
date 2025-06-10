@@ -92,7 +92,7 @@ class TestMeteoForecastFunctional:
 
         # Mock different API responses
         def mock_api_response(api_key, url):
-            if url == MeteoForecast._base_url:
+            if url == MeteoForecast.base_url:
                 return {'models': ['wrf', 'gfs']}
             if 'latlon2rowcol' in url:
                 return {'points': [{'col': 100, 'row': 200}]}

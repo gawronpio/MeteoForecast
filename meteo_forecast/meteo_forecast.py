@@ -18,7 +18,7 @@ class MeteoForecast:
     :param config: Optional configuration dictionary (model, grid, fields)
     :type config: dict or None
     """
-    _default_config = {
+    default_config = {
         'model': 'wrf',
         'grid': 'd02_XLONG_XLAT',
         'fields': [
@@ -37,7 +37,7 @@ class MeteoForecast:
             ('PSFC', 0),  # wrf Surface pressure
         ]
     }
-    _base_url = r'https://api.meteo.pl/api/v1/model/'
+    base_url = r'https://api.meteo.pl/api/v1/model/'
 
     def __init__(
             self,
@@ -60,9 +60,9 @@ class MeteoForecast:
         """
         self.lat = latitude
         self.lon = longitude
-        self.config = self._default_config if config is None else config
+        self.config = self.default_config if config is None else config
         self.api_key = api_key
-        self.main_url = f'{self._base_url}{self.config["model"]}/grid/{self.config["grid"]}/'
+        self.main_url = f'{self.base_url}{self.config["model"]}/grid/{self.config["grid"]}/'
         self.x = None
         self.y = None
 
@@ -126,7 +126,7 @@ class MeteoForecast:
         :return: Tuple of (x, y) grid coordinates
         :rtype: tuple[int, int]
         """
-        url = f'{MeteoForecast._base_url}{model}/grid/{grid}/latlon2rowcol/{latitude}%2C{longitude}/'
+        url = f'{MeteoForecast.base_url}{model}/grid/{grid}/latlon2rowcol/{latitude}%2C{longitude}/'
         data = MeteoForecast._connect_meteo_api_(api_key=api_key, url=url)['points']
         return data[0]['col'], data[0]['row']
 
@@ -167,7 +167,7 @@ class MeteoForecast:
         :warns: If fetching data for a field fails
         """
         forecasts = {}
-        url = f'{self._base_url}{self.config["model"]}/grid/{self.config["grid"]}/coordinates/{self.y}%2C{self.x}/field/'
+        url = f'{self.base_url}{self.config["model"]}/grid/{self.config["grid"]}/coordinates/{self.y}%2C{self.x}/field/'
         for field in self.config['fields']:
             try:
                 url_field = f'{url}{field[0]}/level/{field[1]}/'
@@ -212,7 +212,7 @@ class MeteoForecast:
         :return: List of available model names
         :rtype: list
         """
-        return MeteoForecast._connect_meteo_api_(api_key, MeteoForecast._base_url)['models']
+        return MeteoForecast._connect_meteo_api_(api_key, MeteoForecast.base_url)['models']
 
     @staticmethod
     def available_grids(api_key: str, model: str) -> list:
@@ -226,7 +226,7 @@ class MeteoForecast:
         :return: List of available grid names
         :rtype: list
         """
-        url = f'{MeteoForecast._base_url}{model}/grid/'
+        url = f'{MeteoForecast.base_url}{model}/grid/'
         return MeteoForecast._connect_meteo_api_(api_key, url)['grids']
 
     @staticmethod
@@ -248,7 +248,7 @@ class MeteoForecast:
         :rtype: list
         """
         x, y = MeteoForecast.get_xy(api_key, latitude, longitude, model, grid)
-        url = f'{MeteoForecast._base_url}{model}/grid/{grid}/coordinates/{y}%2C{x}/field/'
+        url = f'{MeteoForecast.base_url}{model}/grid/{grid}/coordinates/{y}%2C{x}/field/'
         return MeteoForecast._connect_meteo_api_(api_key, url)['fields']
 
     @staticmethod
@@ -272,5 +272,5 @@ class MeteoForecast:
         :rtype: list
         """
         x, y = MeteoForecast.get_xy(api_key, latitude, longitude, model, grid)
-        url = f'{MeteoForecast._base_url}{model}/grid/{grid}/coordinates/{y}%2C{x}/field/{field}/level/'
+        url = f'{MeteoForecast.base_url}{model}/grid/{grid}/coordinates/{y}%2C{x}/field/{field}/level/'
         return MeteoForecast._connect_meteo_api_(api_key, url)['levels']
