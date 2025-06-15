@@ -108,19 +108,20 @@ class TestMeteoForecastIntegration:
             with pytest.raises(ValueError, match="Coordinates must be set before fetching the forecast"):
                 meteo.get_forecast()
 
-    @patch.object(requests.get, 'requests_get')
     @patch.object(MeteoForecast, 'get_xy')
-    def test_get_forecast_with_coordinates(self, mock_get_xy, mock_requests_get):
+    def test_get_forecast_with_coordinates(self, mock_get_xy):
         """Test get_forecast with valid coordinates."""
         latitude = 52.2297
         longitude = 21.0122
         x_expected = 100
         y_expected = 200
+        model = 'abc'
+        grid = 'a1b2'
         field = 'T2'
         level = 0
         expected_url = (f'{MeteoForecast.base_url}'
-                        f'{MeteoForecast.default_config["model"]}'
-                        f'/grid/{MeteoForecast.default_config["grid"]}'
+                        f'{model}'
+                        f'/grid/{grid}'
                         f'/coordinates/{y_expected}%2C{x_expected}'
                         f'/field/{field}'
                         f'/level/{level}'
@@ -129,12 +130,11 @@ class TestMeteoForecastIntegration:
 
         with patch.object(MeteoForecast, '_set_xy'):
             meteo = MeteoForecast(self.api_key, config={
-                'model': 'wrf',
-                'grid': 'd02_XLONG_XLAT',
+                'model': model,
+                'grid': grid,
                 'fields': [(field, level)]
             })
 
-            with patch.object(meteo, '_connect_meteo_api', return_value={'data': 'sample_data'}) as mock_meteo_api:
-                result = meteo.get_forecast(latitude, longitude)
-                # assert result == {'data': 'sample_data'}
+            with patch.object(meteo, '_connect_meteo_api') as mock_meteo_api:
+                meteo.get_forecast(latitude, longitude)
                 mock_meteo_api.assert_called_with(expected_url)
