@@ -10,6 +10,7 @@ import warnings
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
 import pytz
 import requests
 
@@ -99,3 +100,41 @@ class TestMeteoForecastIntegration:
                 assert len(w) >= 2  # At least one warning per field
                 # Check that result is empty when all fields fail
                 assert result == {}
+
+    def test_get_forecast_with_missing_coordinates(self):
+        """Test get_forecast with missing coordinates."""
+        with patch.object(MeteoForecast, '_set_xy'):
+            meteo = MeteoForecast(self.api_key)
+            with pytest.raises(ValueError, match="Coordinates must be set before fetching the forecast"):
+                meteo.get_forecast()
+
+    @patch.object(requests.get, 'requests_get')
+    @patch.object(MeteoForecast, 'get_xy')
+    def test_get_forecast_with_coordinates(self, mock_get_xy, mock_requests_get):
+        """Test get_forecast with valid coordinates."""
+        latitude = 52.2297
+        longitude = 21.0122
+        x_expected = 100
+        y_expected = 200
+        field = 'T2'
+        level = 0
+        expected_url = (f'{MeteoForecast.base_url}'
+                        f'{MeteoForecast.default_config["model"]}'
+                        f'/grid/{MeteoForecast.default_config["grid"]}'
+                        f'/coordinates/{y_expected}%2C{x_expected}'
+                        f'/field/{field}'
+                        f'/level/{level}'
+                        f'/date/')
+        mock_get_xy.return_value = (x_expected, y_expected)
+
+        with patch.object(MeteoForecast, '_set_xy'):
+            meteo = MeteoForecast(self.api_key, config={
+                'model': 'wrf',
+                'grid': 'd02_XLONG_XLAT',
+                'fields': [(field, level)]
+            })
+
+            with patch.object(meteo, '_connect_meteo_api', return_value={'data': 'sample_data'}) as mock_meteo_api:
+                result = meteo.get_forecast(latitude, longitude)
+                # assert result == {'data': 'sample_data'}
+                mock_meteo_api.assert_called_with(expected_url)

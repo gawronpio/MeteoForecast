@@ -45,6 +45,26 @@ class TestMeteoForecastEdgeCases:
             with pytest.raises(ValueError, match="Fields cannot be empty"):
                 MeteoForecast(self.api_key, 52.0, 21.0, config)
 
+    def test_invalid_config(self):
+        """Test with invalid configuration."""
+        # Missing required keys
+        with patch.object(MeteoForecast, '_set_xy'):
+            with pytest.raises(ValueError, match='Configuration must have "model" key'):
+                MeteoForecast(self.api_key, 52.0, 21.0, {'grid': 'test', 'fields': [('T2', 0)]})
+
+            with pytest.raises(ValueError, match='Configuration must have "grid" key'):
+                MeteoForecast(self.api_key, 52.0, 21.0, {'model': 'test', 'fields': [('T2', 0)]})
+
+            # Wrong types
+            with pytest.raises(ValueError, match='Configuration "model" must be of type str'):
+                MeteoForecast(self.api_key, 52.0, 21.0, {'model': 123, 'grid': 'test', 'fields': [('T2', 0)]})
+
+            with pytest.raises(ValueError, match='Each field in "fields" must be a tuple'):
+                MeteoForecast(self.api_key, 52.0, 21.0, {'model': 'wrf', 'grid': 'test', 'fields': ['invalid']})
+
+            with pytest.raises(ValueError, match='Each field in "fields" must be a tuple'):
+                MeteoForecast(self.api_key, 52.0, 21.0, {'model': 'wrf', 'grid': 'test', 'fields': [('T2', 'invalid')]})
+
     def test_date_parsing_edge_cases(self):
         """Test date parsing with various formats."""
         # Test with different date formats
