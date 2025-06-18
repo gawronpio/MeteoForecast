@@ -18,7 +18,7 @@ class MeteoForecast:
     """
     Class for fetching and processing meteorological forecast data from the meteo.pl API.
 
-    Config can be added in contructor or can be used default config.
+    Config can be added in constructor or can be used default config.
     Config contains:
         - model: Model name (default: 'wrf')
         - grid: Grid name (default: 'd02_XLONG_XLAT')
@@ -93,7 +93,7 @@ class MeteoForecast:
     @staticmethod
     def _check_config(config: dict):
         """
-        Check if configuration dictionary has propper structure.
+        Check if configuration dictionary has proper structure.
 
         :param config: Configuration dictionary to check
         :type config: dict
@@ -248,8 +248,6 @@ class MeteoForecast:
         else:
             x, y = self.x, self.y
 
-        if config is None:
-            raise ValueError("Configuration must be provided either in constructor or as an argument to get_forecast method.")
         if x is None or y is None:
             raise ValueError("Coordinates must be set before fetching the forecast. Set latitude and longitude in constructor or in get_forecast call.")
 

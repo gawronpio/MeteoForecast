@@ -225,7 +225,7 @@ class TestMeteoForecastErrorScenarios(BaseTest):
             forecast.x = 100
             forecast.y = 200
 
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('meteo_forecast.meteo_forecast.datetime') as mock_datetime:
                 from datetime import datetime
 
                 import pytz
