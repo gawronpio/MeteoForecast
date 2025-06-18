@@ -6,20 +6,18 @@ For details, see the LICENSE file in the project root.
 Edge cases tests for MeteoForecast class.
 """
 
+# pylint: disable=protected-access
 
 from unittest.mock import patch
 
 import pytest
 
 from meteo_forecast.meteo_forecast import MeteoForecast
+from tests.base_test import BaseTest
 
 
-class TestMeteoForecastEdgeCases:
+class TestMeteoForecastEdgeCases(BaseTest):
     """Test edge cases and boundary conditions."""
-
-    def setup_method(self):
-        """Set up test fixtures before each test method."""
-        self.api_key = "test_api_key"
 
     def test_extreme_coordinates(self):
         """Test with extreme latitude/longitude values."""

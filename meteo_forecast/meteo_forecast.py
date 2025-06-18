@@ -1,6 +1,14 @@
+"""
+Copyright (c) 2025 Piotr Gawron (dev@gawron.biz)
+This file is licensed under the MIT License.
+For details, see the LICENSE file in the project root.
+
+MeteoForecast main class.
+"""
+
 import warnings
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import pytz
 import requests
@@ -44,6 +52,7 @@ class MeteoForecast:
         ]
     }
     base_url = r'https://api.meteo.pl/api/v1/model/'
+    request_timeout = 5  # seconds
 
     def __init__(
             self,
@@ -126,9 +135,9 @@ class MeteoForecast:
             raise TypeError("api_key must be a string")
         headers = {'Authorization': f'Token {api_key}'}
         if post:
-            response = requests.post(url, headers=headers)
+            response = requests.post(url, headers=headers, timeout=MeteoForecast.request_timeout)
         else:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=MeteoForecast.request_timeout)
         if response.status_code != 200:
             raise ValueError(f"Failed to connect to Meteo API: {response.status_code} - {response.text}")
         return response.json()
@@ -218,8 +227,10 @@ class MeteoForecast:
         :type longitude: float or None
         :param config: Optional configuration dictionary to override instance config
         :type config: dict or None
+
         :return: Nested dictionary with forecast data for each time and field
         :rtype: dict
+
         :raises ValueError: If no valid forecast date is found for a field
         :warns: If fetching data for a field fails
         """
@@ -274,7 +285,7 @@ class MeteoForecast:
                     if field[0] not in forecasts[time]:
                         forecasts[time][field[0]] = {}
                     forecasts[time][field[0]][field[1]] = data
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 warnings.warn(f"Failed to fetch data for field {field[0]} at level {field[1]}: {e}")
         return forecasts
 
