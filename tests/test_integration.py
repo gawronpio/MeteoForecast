@@ -7,58 +7,42 @@ Integration tests for MeteoForecast class.
 """
 
 import warnings
-from datetime import datetime
 from unittest.mock import patch
 
-import pytz
+import pytest
 import requests
 
 from meteo_forecast.meteo_forecast import MeteoForecast
+from tests.base_test import BaseTest
+from tests.mocks import (
+    get_mock_get_response,
+    get_mock_post_response,
+    get_times_nad_vals,
+)
 
 
-class TestMeteoForecastIntegration:
+class TestMeteoForecastIntegration(BaseTest):
     """Integration tests for MeteoForecast class - testing method interactions."""
 
-    def setup_method(self):
-        """Set up test fixtures before each test method."""
-        self.api_key = "test_api_key"
-        self.latitude = 52.2297
-        self.longitude = 21.0122
-
-    @patch('meteo_forecast.meteo_forecast.datetime')
     @patch.object(MeteoForecast, '_connect_meteo_api')
-    def test_get_forecast_integration(self, mock_connect, mock_datetime):
+    def test_get_forecast_integration(self, mock_connect):
         """Test get_forecast method integration with multiple API calls."""
-        # Mock current time
-        mock_now = datetime(2024, 1, 15, 12, 0, 0, tzinfo=pytz.UTC)
-        mock_datetime.now.return_value = mock_now
-        mock_datetime.strptime = datetime.strptime
+        times_and_vals = get_times_nad_vals()
 
-        # Mock API responses
         def mock_api_response(url, post=False):
-            if 'date/' in url and not post:
-                return {
-                    'dates': [{
-                        'starting-date': '2024-01-14T00',
-                        'interval': 6,
-                        'count': 8
-                    }]
-                }
-            elif 'forecast/' in url and post:
-                return {
-                    'times': ['2024-01-15T00', '2024-01-15T06'],
-                    'data': [15.5, 16.2]
-                }
-            return {}
+            if post:
+                return get_mock_post_response(times_and_vals)(url).json()
+            return get_mock_get_response()(url).json()
 
         mock_connect.side_effect = mock_api_response
+        config = {
+            'model': 'wrf',
+            'grid': 'd02_XLONG_XLAT',
+            'fields': [('T2', 0)]
+        }
 
         with patch.object(MeteoForecast, '_set_xy'):
-            forecast = MeteoForecast(self.api_key, self.latitude, self.longitude, {
-                'model': 'wrf',
-                'grid': 'd02_XLONG_XLAT',
-                'fields': [('T2', 0)]
-            })
+            forecast = MeteoForecast(self.api_key, self.latitude, self.longitude, config)
             forecast.x = 100
             forecast.y = 200
 
@@ -66,11 +50,11 @@ class TestMeteoForecastIntegration:
 
             # Verify structure of returned data
             assert isinstance(result, dict)
-            assert '2024-01-15T00' in result
-            assert '2024-01-15T06' in result
-            assert 'T2' in result['2024-01-15T00']
-            assert result['2024-01-15T00']['T2'][0] == 15.5
-            assert result['2024-01-15T06']['T2'][0] == 16.2
+            for i, time in enumerate(times_and_vals['times']):
+                assert time in result
+                for field, level in config['fields']:
+                    assert field in result[time]
+                    assert result[time][field][level] == times_and_vals['vals'][field][i]
 
     @patch.object(MeteoForecast, '_connect_meteo_api')
     def test_get_forecast_with_warnings(self, mock_connect):
@@ -98,4 +82,44 @@ class TestMeteoForecastIntegration:
                 # Check that warnings were issued for failed fields
                 assert len(w) >= 2  # At least one warning per field
                 # Check that result is empty when all fields fail
-                assert result == {}
+                assert isinstance(result, dict)
+                assert not result
+
+    def test_get_forecast_with_missing_coordinates(self):
+        """Test get_forecast with missing coordinates."""
+        with patch.object(MeteoForecast, '_set_xy'):
+            meteo = MeteoForecast(self.api_key)
+            with pytest.raises(ValueError, match="Coordinates must be set before fetching the forecast"):
+                meteo.get_forecast()
+
+    @pytest.mark.filterwarnings("ignore:Failed to fetch data for field")
+    @patch.object(MeteoForecast, 'get_xy')
+    def test_get_forecast_with_coordinates(self, mock_get_xy):
+        """Test get_forecast with valid coordinates."""
+        latitude = 52.2297
+        longitude = 21.0122
+        x_expected = 100
+        y_expected = 200
+        model = 'abc'
+        grid = 'a1b2'
+        field = 'T2'
+        level = 0
+        expected_url = (f'{MeteoForecast.base_url}'
+                        f'{model}'
+                        f'/grid/{grid}'
+                        f'/coordinates/{y_expected}%2C{x_expected}'
+                        f'/field/{field}'
+                        f'/level/{level}'
+                        f'/date/')
+        mock_get_xy.return_value = (x_expected, y_expected)
+
+        with patch.object(MeteoForecast, '_set_xy'):
+            meteo = MeteoForecast(self.api_key, config={
+                'model': model,
+                'grid': grid,
+                'fields': [(field, level)]
+            })
+
+            with patch.object(meteo, '_connect_meteo_api') as mock_meteo_api:
+                meteo.get_forecast(latitude, longitude)
+                mock_meteo_api.assert_called_with(expected_url)
