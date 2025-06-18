@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "test"
-version = "0.1.0"
+version = "0.1.1.dev"
 description = "MeteoForecast is library to get weather forecast data from Polish service meteo.pl."
 requires-python = ">=3.11"
 authors = [

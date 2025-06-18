@@ -14,3 +14,7 @@ and this project adheres to modified [Semantic Versioning](http://semver.org/spe
 
 ### Fixed (unreleased)
 - 
+
+## [0.1.0 - 2025-06-18]
+### Added (unreleased)
+- initial version of the project
