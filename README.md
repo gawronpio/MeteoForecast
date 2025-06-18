@@ -18,11 +18,11 @@ To use this library you have to firstly get an API key from meteo.pl. You can do
 [api.meteo.pl](https://api.meteo.pl/) website and following the instructions.
 
 Library can be configured by passing a dictionary with configuration parameters to the constructor of the 
-`MeteoForecast` class and or by setting the configuration in the `get_forecast` method. See examples bellow.
+`MeteoForecast` class and/or by setting the configuration in the `get_forecast` method. See examples below.
 
 ### Config dictionary
 
-Description of all models, grids and fields cen be found on [api.meteo.pl](https://api.meteo.pl/docs/) website.
+Description of all models, grids and fields can be found on [api.meteo.pl](https://api.meteo.pl/docs/) website.
 
 ```python
 config = {
