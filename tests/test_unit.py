@@ -6,26 +6,18 @@ For details, see the LICENSE file in the project root.
 Unit tests for MeteoForecast class.
 """
 
+# pylint: disable=protected-access
+
 from unittest.mock import Mock, patch
 
 import pytest
 
 from meteo_forecast.meteo_forecast import MeteoForecast
+from tests.base_test import BaseTest
 
 
-class TestMeteoForecastUnit:
+class TestMeteoForecastUnit(BaseTest):
     """Unit tests for MeteoForecast class."""
-
-    def setup_method(self):
-        """Set up test fixtures before each test method."""
-        self.api_key = "test_api_key"
-        self.latitude = 52.2297
-        self.longitude = 21.0122
-        self.test_config = {
-            'model': 'wrf',
-            'grid': 'd01_XLONG_XLAT',
-            'fields': [('T2', 0), ('RAINNC', 0)]
-        }
 
     def test_init_with_default_config(self):
         """Test MeteoForecast initialization with default configuration."""
@@ -47,7 +39,7 @@ class TestMeteoForecastUnit:
 
             assert forecast.config == self.test_config
 
-    @patch('meteo_forecast.meteo_forecast.requests.get')
+    @patch('requests.get')
     def test_connect_meteo_api_static_get_success(self, mock_get):
         """Test static API connection method with GET request - success case."""
         api_key = 'test_key'
@@ -61,9 +53,9 @@ class TestMeteoForecastUnit:
         result = MeteoForecast._connect_meteo_api_(api_key, url)
 
         assert result == expected_result
-        mock_get.assert_called_once_with(url, headers={'Authorization': f'Token {api_key}'})
+        mock_get.assert_called_once_with(url, headers={'Authorization': f'Token {api_key}'}, timeout=5)
 
-    @patch('meteo_forecast.meteo_forecast.requests.post')
+    @patch('requests.post')
     def test_connect_meteo_api_static_post_success(self, mock_post):
         """Test static API connection method with POST request - success case."""
         api_key = 'test_key'
@@ -77,9 +69,9 @@ class TestMeteoForecastUnit:
         result = MeteoForecast._connect_meteo_api_(api_key, url, post=True)
 
         assert result == expected_result
-        mock_post.assert_called_once_with(url, headers={'Authorization': f'Token {api_key}'})
+        mock_post.assert_called_once_with(url, headers={'Authorization': f'Token {api_key}'}, timeout=5)
 
-    @patch('meteo_forecast.meteo_forecast.requests.get')
+    @patch('requests.get')
     def test_connect_meteo_api_static_failure(self, mock_get):
         """Test static API connection method - failure case."""
         mock_response = Mock()
